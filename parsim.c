@@ -141,12 +141,37 @@ int main(int argc, char *argv[]) {
     init_particles(userseed, side, ncside, n_part, particles);
 
     //contagem de colisões 
+    char **collided = malloc(n_part * sizeof(char *));
+    for (long long i = 0; i < n_part; i++) {
+        collided[i] = calloc(n_part, sizeof(char)); // inicia tudo a 0
+    }
+
     long collisions = 0 ;
     for (long step = 0; step < steps; step++) {
-        compute_forces(particles, n_part); //calcula as forças gravitacionais entre as particulas e ajusta suas velocidades 
-        update_positions(particles, n_part, side); //atualiza as posições das particulas com base nas velocidades e aplica condições de contorno periódicas 
-        collisions += detect_collisions(particles, n_part); 
+        compute_forces(particles, n_part);
+        update_positions(particles, n_part, side);
+    
+        // verificar colisões e contar apenas uma vez por par
+        for (long long i = 0; i < n_part; i++) {
+            for (long long j = i + 1; j < n_part; j++) {
+                if (!collided[i][j]) {
+                    double dx = particles[j].x - particles[i].x;
+                    double dy = particles[j].y - particles[i].y;
+                    double dist2 = dx * dx + dy * dy;
+                    if (dist2 < EPSILON2) {
+                        collisions++;
+                        collided[i][j] = 1; // marca que esse par já colidiu
+                    }
+                }
+            }
+        }
     }
+
+    for (long long i = 0; i < n_part; i++) {
+        free(collided[i]);
+    }
+    free(collided);
+    
     
     printf("%.3lf %.3lf\n%ld\n", particles[0].x, particles[0].y, collisions);
 
